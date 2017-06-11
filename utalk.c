@@ -153,12 +153,16 @@ int main( int argc, const char* argv[] )
                 else
                 {
                     int a;
-                    for(a = 0;a < gotlength && msgb_poz + a <= MSGLIM*BUFFSIZE;a++)
+                    for(a = 0;a < gotlength && msgb_poz + a < MSGLIM*BUFFSIZE;a++)
                     {
                         msgbuffer[msgb_poz+a] = buf[a];
                     }
                     msgb_poz +=a+1;
                     a=0;
+                    if(msgb_poz > MSGLIM*BUFFSIZE)
+                    {
+                        msgb_poz = MSGLIM*BUFFSIZE;
+                    }
                 }
             }
             if(errno != 0)
