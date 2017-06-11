@@ -51,7 +51,7 @@ int main( int argc, const char* argv[] )
 
         port = atoi(argv[2]);
 
-        if(port == 0 || port > 65535)
+        if(port <= 0 || port > 65535)
         {
             fprintf(stderr,"Neplatny port\n");
             return 1;
@@ -153,7 +153,7 @@ int main( int argc, const char* argv[] )
                 else
                 {
                     int a;
-                    for(a = 0;a < gotlength;a++)
+                    for(a = 0;a < gotlength && msgb_poz + a <= MSGLIM*BUFFSIZE;a++)
                     {
                         msgbuffer[msgb_poz+a] = buf[a];
                     }
@@ -161,7 +161,7 @@ int main( int argc, const char* argv[] )
                     a=0;
                 }
             }
-            if(errno != 0 && errno != EAGAIN && errno != ESRCH)
+            if(errno != 0)
             {
                 perror(strerror(errno));
                 errno = 0;
@@ -189,7 +189,7 @@ int main( int argc, const char* argv[] )
                 gotlength++;
                 sendto(sour_socket,sendb,gotlength, 0,(struct sockaddr *)&dest_sock_addr, sizeof(dest_sock_addr));
 
-                if(errno != 0 && errno != EAGAIN && errno != ESRCH)
+                if(errno != 0)
                 {
                     perror(strerror(errno));
                     errno = 0;
@@ -205,7 +205,7 @@ int main( int argc, const char* argv[] )
                 printf("<-KONEC IN ");
                 #endif
             }
-            else// if(isalnum(c)) //nepusta medzere ani znaky
+            else if(sendb_poz< BUFFSIZE-1) //na konci jedno miseto pre '\n'
             {
                 sendb[sendb_poz] = c;
                 sendb_poz++;
@@ -219,7 +219,6 @@ int main( int argc, const char* argv[] )
             {
                 printf("%c", msgbuffer[a]);
             }
-            //printf("\n"); //je dvolezite aby sy vzy printilo \n bo inac to pronti secko naraz ked sa nejake \n ukaze
             msgb_poz = 0;
             memset(msgbuffer,0, BUFFSIZE*MSGLIM);
         }
