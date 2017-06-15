@@ -60,7 +60,7 @@ int main( int argc, const char* argv[] )
 
     int sour_socket;
 
-    sour_socket = socket(PF_INET, SOCK_DGRAM, 0);//IPPROTO_UDP
+    sour_socket = socket(PF_INET, SOCK_DGRAM, 0);
     if(sour_socket < 0)
     {
         fprintf(stderr,"Nejde vytvorit socket\n");
@@ -72,7 +72,7 @@ int main( int argc, const char* argv[] )
     memset((char *) &dest_sock_addr, 0, sizeof(dest_sock_addr));
     dest_sock_addr.sin_family = AF_INET;
     dest_sock_addr.sin_port = htons(port);
-    dest_sock_addr.sin_addr.s_addr = inet_addr(argv[1]);
+    dest_sock_addr.sin_addr = inaddr;
 
     struct sockaddr_in sour_sock_addr;       //odkial
     memset((char *) &sour_sock_addr, 0, sizeof(sour_sock_addr));
@@ -109,13 +109,15 @@ int main( int argc, const char* argv[] )
     bool print = true;
 
     char sendb[BUFFSIZE] = "";
+    memset(sendb,0,BUFFSIZE);
     sendb[0] = 'i';sendb[1] = 'n';sendb[2] = ':';
     int sendb_poz = 3;
 
     char msgbuffer[BUFFSIZE * MSGLIM] = "";
-    int msgb_poz = 0;
+    int msgb_poz = 0; /* bude obsahovat cislo prveho volneho miesta, cize
+                         pocet charov v msgbuffer kere sa maju vyprintit*/
 
-    bool f = false;
+    bool f = false; /*aby nam no nevynechavalo prvy znak po entru*/
     //main loop
     while(1)
     {
@@ -140,15 +142,17 @@ int main( int argc, const char* argv[] )
             printf("(Prsial sprava)");
             #endif
 
-            gotlength = 0;
+
+            /*MSG_DONTWAIT tu nepotrebujeme bo sem sa ide iba ak sme neco
+            dostali takze neni na co cakat, a teda vzdy mame aktualnu dlzku(gotlengt)*/
             memset(buf,0,BUFFSIZE);
-            gotlength = recvfrom(sour_socket,buf, BUFFSIZE,MSG_DONTWAIT,NULL, NULL);
+            gotlength = recvfrom(sour_socket,buf, BUFFSIZE,0,NULL, NULL);
             if(gotlength > 0)
             {
 
                 if(print == true)
                 {
-                    printf("%s",buf);
+                    printf("%.*s",gotlength,buf);//vypise gotlength charov z buf
                 }
                 else
                 {
@@ -157,12 +161,7 @@ int main( int argc, const char* argv[] )
                     {
                         msgbuffer[msgb_poz+a] = buf[a];
                     }
-                    msgb_poz +=a+1;
-                    a=0;
-                    if(msgb_poz > MSGLIM*BUFFSIZE)
-                    {
-                        msgb_poz = MSGLIM*BUFFSIZE;
-                    }
+                    msgb_poz +=a+1; //povie kde je dalsi volni, resp pocet charov v msgbuffer
                 }
             }
             if(errno != 0)
@@ -174,16 +173,15 @@ int main( int argc, const char* argv[] )
 
         if(FD_ISSET(0, &fds))//vstup
         {
-            if(f == true)//lel
+            if(f == true)/*aby nam no nevynechavalo prvy znak po entru*/
             {
                 f = false;
                 continue;
             }
             char c = 0;
             c = getc(stdin);
-
             #ifdef PALL
-            printf("( %c : %d )", c, (int)c);
+            printf("( %c : %d )\n", c, (int)c);
             #endif
 
             if((int)c == 10)//enter
@@ -219,10 +217,8 @@ int main( int argc, const char* argv[] )
 
         if(print == true && msgb_poz >0)
         {
-            for(int a = 0;a < msgb_poz;a++)
-            {
-                printf("%c", msgbuffer[a]);
-            }
+            fwrite ( msgbuffer, sizeof(char), msgb_poz, stdout);
+            //printf("%.*s", ,msgbuffer); ma problem ze vypisuje iba po '\n'
             msgb_poz = 0;
             memset(msgbuffer,0, BUFFSIZE*MSGLIM);
         }
