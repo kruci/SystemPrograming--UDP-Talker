@@ -117,7 +117,8 @@ int main( int argc, const char* argv[] )
     int msgb_poz = 0; /* bude obsahovat cislo prveho volneho miesta, cize
                          pocet charov v msgbuffer kere sa maju vyprintit*/
 
-    bool f = false; /*aby nam no nevynechavalo prvy znak po entru*/
+    /*bool f = false; /*aby nam no nevynechavalo prvy znak po entru,
+                        nahradene fflushom*/
     //main loop
     while(1)
     {
@@ -161,7 +162,7 @@ int main( int argc, const char* argv[] )
                     {
                         msgbuffer[msgb_poz+a] = buf[a];
                     }
-                    msgb_poz +=a+1; //povie kde je dalsi volni, resp pocet charov v msgbuffer
+                    msgb_poz +=a;//povie kde je dalsi volni, resp pocet charov v msgbuffer
                 }
             }
             if(errno != 0)
@@ -173,11 +174,11 @@ int main( int argc, const char* argv[] )
 
         if(FD_ISSET(0, &fds))//vstup
         {
-            if(f == true)/*aby nam no nevynechavalo prvy znak po entru*/
-            {
+            /*if(f == true)     //aby nam no nevynechavalo prvy znak po entru
+            {                   //nahradene fflushom
                 f = false;
                 continue;
-            }
+            }*/
             char c = 0;
             c = getc(stdin);
             #ifdef PALL
@@ -198,7 +199,8 @@ int main( int argc, const char* argv[] )
                 }
 
                 print = true;
-                f = true;
+                //f = true;
+                fflush(stdin);
                 memset(sendb,0,BUFFSIZE);
                 sendb[0] = 'i';sendb[1] = 'n';sendb[2] = ':';
                 sendb_poz = 3;
@@ -217,8 +219,10 @@ int main( int argc, const char* argv[] )
 
         if(print == true && msgb_poz >0)
         {
-            fwrite ( msgbuffer, sizeof(char), msgb_poz, stdout);
-            //printf("%.*s", ,msgbuffer); ma problem ze vypisuje iba po '\n'
+            printf("%.*s", msgb_poz, msgbuffer);
+            #ifdef PALL
+            printf("%d", msgb_poz);
+            #endif
             msgb_poz = 0;
             memset(msgbuffer,0, BUFFSIZE*MSGLIM);
         }
